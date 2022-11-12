@@ -25,7 +25,7 @@ class Camera {
         projectedPoint[2] /= projectedPoint[3];
         projectedPoint[0] = 1.0 - (projectedPoint[0] * 0.5 + 0.5);
         projectedPoint[1] = (projectedPoint[1] * 0.5 + 0.5);
-        projectedPoint[2] = 1.0 - (projectedPoint[2] * 0.5 + 0.5);
+        projectedPoint[2] = (projectedPoint[2] * 0.5 + 0.5);
         projectedPoint[3] = projectedPoint[3];
         return projectedPoint;
     }

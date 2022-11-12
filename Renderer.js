@@ -58,7 +58,7 @@ class Renderer {
         for (let y = 0; y < this.height; y++) {
             for (let x = 0; x < this.width; x++) {
                 this.setColorAt(x, y, r, g, b);
-                this.setDepthAt(x, y, 0);
+                this.setDepthAt(x, y, 1);
             }
         }
     }
@@ -106,37 +106,6 @@ class Renderer {
         }
     }
     drawTriangle(vertex1, vertex2, vertex3, tri) {
-        /*if (vertex1[1] > vertex2[1]) {
-            let temp = vertex1;
-            vertex1 = vertex2;
-            vertex2 = temp;
-        }
-        if (vertex2[1] > vertex3[1]) {
-            let temp = vertex2;
-            vertex2 = vertex3;
-            vertex3 = temp;
-        }
-        if (vertex1[1] > vertex2[1]) {
-            let temp = vertex1;
-            vertex1 = vertex2;
-            vertex2 = temp;
-        }
-        vertex1[0] = Math.floor(vertex1[0]);
-        vertex2[0] = Math.floor(vertex2[0]);
-        vertex3[0] = Math.floor(vertex3[0]);
-        vertex1[1] = Math.floor(vertex1[1]);
-        vertex2[1] = Math.floor(vertex2[1]);
-        vertex3[1] = Math.floor(vertex3[1]);
-        if (vertex2[1] === vertex3[1]) {
-            this.drawBottomTriangle(vertex1, vertex2, vertex3, r, g, b);
-        }
-        else if (vertex1[1] === vertex2[1]) {
-            this.drawTopTriangle(vertex1, vertex2, vertex3, r, g, b);
-        } else {
-            const vertex4 = [(vertex1[0] + ((vertex2[1] - vertex1[1]) / (vertex3[1] - vertex1[1])) * (vertex3[0] - vertex1[0])), vertex2[1]];
-            this.drawBottomTriangle(vertex1, vertex2, vertex4, r, g, b);
-            this.drawTopTriangle(vertex2, vertex4, vertex3, r, g, b);
-        }*/
         const v1 = { x: vertex1[0], y: vertex1[1], z: vertex1[2], w: vertex1[3] };
         const v2 = { x: vertex2[0], y: vertex2[1], z: vertex2[2], w: vertex2[3] };
         const v3 = { x: vertex3[0], y: vertex3[1], z: vertex3[2], w: vertex3[3] };
@@ -147,6 +116,10 @@ class Renderer {
         const col2 = tri.colors[1];
         const col3 = tri.colors[2];
         const denom = (v2.y - v3.y) * (v1.x - v3.x) + (v3.x - v2.x) * (v1.y - v3.y);
+        const invDenom = 1.0 / denom;
+        const invV1 = 1.0 / v1.w;
+        const invV2 = 1.0 / v2.w;
+        const invV3 = 1.0 / v3.w;
         const b1y = (v2.y - v3.y);
         const b1x = (v3.x - v2.x);
         const b2y = (v3.y - v1.y);
@@ -157,45 +130,23 @@ class Renderer {
         let maxY = Math.min(Math.max(Math.ceil(Math.max(v1.y, v2.y, v3.y)), 0), this.height);
         for (let y = minY; y <= maxY; y++) {
             for (let x = minX; x <= maxX; x++) {
-                /*if ((x < 0 || x >= this.width) || (y < 0 || y >= this.height)) {
-                    continue;
-                }*/
-                const weight1 = (b1y * (x - v3.x) + b1x * (y - v3.y)) / denom;
-                const weight2 = (b2y * (x - v3.x) + b2x * (y - v3.y)) / denom;
+                const weight1 = (b1y * (x - v3.x) + b1x * (y - v3.y)) * invDenom;
+                const weight2 = (b2y * (x - v3.x) + b2x * (y - v3.y)) * invDenom;
                 const weight3 = 1 - weight1 - weight2;
                 if (weight1 <= 0 || weight2 <= 0 || weight3 <= 0) {
                     continue;
                 }
-                /*let w1 = (b1y * (x - v3.x) + b1x * (y - v3.y));
-                let w2 = (b2y * (x - v3.x) + b2x * (y - v3.y));
-                if (denom >= 0) {
-                    if (w1 <= 0 || w2 <= 0) {
-                        continue;
-                    }
-                    if (w1 + w2 >= denom) {
-                        continue;
-                    }
-                } else {
-                    if (w1 >= 0 || w2 >= 0) {
-                        continue;
-                    }
-                    if (w1 + w2 <= denom) {
-                        continue;
-                    }
-                }
-                const weight1 = w1 / denom;
-                const weight2 = w2 / denom;
-                const weight3 = 1 - weight1 - weight2;*/
-                const w1d = weight1 / v1.w;
-                const w2d = weight2 / v2.w;
-                const w3d = weight3 / v3.w;
-                const perspectiveDiv = w1d + w2d + w3d;
-                const b1 = w1d / perspectiveDiv;
-                const b2 = w2d / perspectiveDiv;
-                const b3 = w3d / perspectiveDiv;
-                const beforeDepth = this.getDepth(x, y);
                 const depth = weight1 * v1.z + weight2 * v2.z + weight3 * v3.z;
-                if (depth > beforeDepth) {
+                const beforeDepth = this.getDepth(x, y);
+                if (depth < beforeDepth) {
+                    const w1d = weight1 * invV1;
+                    const w2d = weight2 * invV2;
+                    const w3d = weight3 * invV3;
+                    const perspectiveDiv = w1d + w2d + w3d;
+                    const invPDiv = 1 / perspectiveDiv;
+                    const b1 = w1d * invPDiv;
+                    const b2 = w2d * invPDiv;
+                    const b3 = w3d * invPDiv;
                     const colorR = b1 * col1[0] + b2 * col2[0] + b3 * col3[0];
                     const colorG = b1 * col1[1] + b2 * col2[1] + b3 * col3[1];
                     const colorB = b1 * col1[2] + b2 * col2[2] + b3 * col3[2];

@@ -145,7 +145,7 @@ function animate() {
     renderer.draw();
     avgTime += performance.now() - start;
     frames++;
-    //console.log(avgTime / frames);
+    console.log(avgTime / frames);
     requestAnimationFrame(animate);
 }
 
